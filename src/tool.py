@@ -274,7 +274,7 @@ def download_software(downloadLink):
 
 def renew_file(link):
     """
-    更新文件
+    工具包下载
     """
     patList = os.environ.get('Path')
     wgetPath = root_path + "utils\\wget\\bin"
