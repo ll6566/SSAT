@@ -2,7 +2,6 @@
 import os
 import sys
 
-
 # 追加模块搜索路径
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_DIR)
@@ -12,7 +11,7 @@ from time import sleep
 from config.config import logging
 from src.class_list import T1, Ace1
 from src.read_task import eRead_test_task, eRead_wifi_ssid_password
-from src.tool import check_device,input_notice, adb_continuous
+from src.tool import check_device, input_notice, adb_continuous
 
 
 def wait_reboot(sign):
@@ -30,8 +29,8 @@ def wait_reboot(sign):
     print("\r等待重启完成")
 
 
-def stop_run(classType,dev,beginName):
-    testClass = classType(device=dev, beginName=beginName, ssid="", password="",account="", preconditions="")
+def stop_run(classType, dev, beginName):
+    testClass = classType(device=dev, beginName=beginName, ssid="", password="", account="", preconditions="")
     if not adb_continuous(dev, 15):
         testClass.stop_test()
 
@@ -51,19 +50,20 @@ def stop_reboot(devList):
         models = os.popen("adb -s {} shell getprop ro.product.model".format(stopDev['Device'])).read()
         models = str(models).replace(" ", "").replace("\n", "")
         if "XPT11" in models:
-            t = threading.Thread(target=stop_run, args=(T1,stopDev["Device"],stopDev["BeginName"]))
+            t = threading.Thread(target=stop_run, args=(T1, stopDev["Device"], stopDev["BeginName"]))
             stopList.append(t)
         elif "XTA11" in models:
-            t = threading.Thread(target=stop_run, args=(Ace1,stopDev["Device"],stopDev["BeginName"]))
+            t = threading.Thread(target=stop_run, args=(Ace1, stopDev["Device"], stopDev["BeginName"]))
             stopList.append(t)
         else:
-            print("添加停止重启测试项失败，没有改机型")
+            logging.error("添加停止重启测试项失败，没有改机型")
     # 多线程执行停止测试任务
     for t in stopList:
         t.join()
         t.start()
-    print("停止测试完成")
+    logging.info("停止测试完成")
     return True
+
 
 def test_run(classType, sending, wcr):
     """

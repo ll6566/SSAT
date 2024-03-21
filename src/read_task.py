@@ -228,8 +228,8 @@ def eRead_dev_type():
     fDevList = []
     for devs in devList:
         if devs['Device'] is None or devs['Device'] == "":
-            print("============================")
-            print("设备device为空！！")
+            logging.error("============================")
+            logging.error("设备device为空！！")
             exit()
         if devs['Device'] in res:
             Device = "【{}】".format("在线") + devs['Device']
@@ -282,6 +282,6 @@ def eRead_test_activity():
             value = {name: act}
             valueList.append(value)
         except Exception as e:
-            print(e)
+            logging.error(e)
             break
     return valueList

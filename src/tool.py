@@ -132,20 +132,20 @@ def waitPid(dev, wrap, timeOut):
 
 def waitEnter(time):
     """启动预检"""
-    print("正在预检设备状态中....")
+    logging.info("正在预检设备状态中....")
     # 检查设备在线
     tDevList, fDevList = eRead_dev_type()
     for pri in range(3):
         print("\n")
     print("【设备状态预检】: ")
-    print("设备device                物理机位置    测试项目    hub端口    自动化步骤")
+    print("工位号      设备device                物理机位置    测试项目    hub端口    自动化步骤")
     print("\n")
     for td in tDevList:
-        print(td['设备device'] + "       " + td['物理机位置'] + "     " + td['测试项目'] + "      " + str(
+        print(str(td['排位编号']) + "       " + td['设备device'] + "       " + td['物理机位置'] + "     " + td['测试项目'] + "      " + str(
             td['hub端口']) + "        " + td['自动化步骤'] + "            ")
     print("\n")
     for fd in fDevList:
-        print(fd['设备device'] + "       " + fd['物理机位置'] + "     " + fd['测试项目'] + "      " + str(
+        print(str(fd['排位编号']) + "       " + fd['设备device'] + "       " + fd['物理机位置'] + "     " + fd['测试项目'] + "      " + str(
             fd['hub端口']) + "        " + fd['自动化步骤'] + "            ")
     print("\n")
     print("共计：\033[1;32m在线【{}】\033[0m  \033[1;31m离线【{}】\033[0m".format(len(tDevList), len(fDevList)))
@@ -255,7 +255,7 @@ def download_software(downloadLink):
         logging.info("正在解压文件....")
         patoolib.extract_archive(fileName, outdir=root_path + "data")
     except Exception as e:
-        print(e)
+        logging.error(e)
         return False, "解压文件失败"
     if os.path.exists(softwarePath + '\\items.ini'):
         logging.info("正在修改items文件.....")
@@ -304,3 +304,69 @@ def renew_file(link):
         logging.error("工具包解压失败")
         exit()
 
+
+def cmd_to_file(cmd, file, timeout):
+    """
+    执行cmd命令，重定向内容到指定文件
+    cmd：执行的cmd
+    file: 文件
+    return: 目标文件
+    """
+    with open(root_path + "data\\" + file, 'w', encoding='utf-8') as fe:
+        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try:
+            output, unused_err = process.communicate(timeout=timeout)
+            fe.write(output.decode())
+        except Exception as e:
+            fe.write(str(e))
+            logging.error(e)
+            return False, str(e)
+    return True, root_path + "data\\" + file
+
+
+def read_keywords(file, key):
+    """
+    读取txt文件中某关键字
+    file: 文件
+    key: 关键字
+    """
+    with open(file, 'r', encoding='utf-8') as f:
+        if str(key) not in str(f.read()):
+            return
+    return True
+
+
+def query_update_folder(folder_path):
+    """
+    获取路径下最后修改时间的文件夹
+    return 文件夹
+    """
+    # 初始化最后修改时间和对应的文件名
+    last_modified_time = 0
+    last_modified_file = None
+
+    # 遍历文件夹中的文件
+    for filename in os.listdir(folder_path):
+        file_path = os.path.join(folder_path, filename)
+        # 确定为文件夹
+        if os.path.isdir(file_path):
+            mod_time = os.path.getmtime(file_path)
+
+            # 比较时间戳，更新最后修改的文件信息
+            if mod_time > last_modified_time:
+                last_modified_time = mod_time
+                last_modified_file = filename
+    return last_modified_file
+
+
+def getMtkLog_keywords(path):
+    """
+    获取mtk烧录完成后日志中打印刷机完成的信息
+    """
+    # SP_FT_Dump_03-21-2024-17-20-39
+    with open(r'C:\ProgramData\SP_FT_Logs\%s\QT_FLASH_TOOL.log' % path) as f:
+        # 使用生成器表达式和next()来找出第一个包含"a"的元素
+        read = next((s for s in f.readlines()[-15:] if "FlashTool_EnableWatchDogTimeout Succeeded" in s), None)
+        if read is None:
+            return
+        return True

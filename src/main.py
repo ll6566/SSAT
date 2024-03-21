@@ -6,17 +6,18 @@ from time import sleep
 # 追加模块搜索路径
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_DIR)
+
 from src.burn import burn_run
 from config.config import logging
 from src.monitor import monitor_run
 from src.class_list import T1, Ace1
 from src.WeComRobot import WeComRobot
 from src.start_test import test_run, stop_reboot, wait_reboot
-from src.read_task import eRead_test_task, eRead_monitor_time, eRead_software_link
+from src.read_task import eRead_test_task, eRead_monitor_time, eRead_software_link, eRead_dev_type
 from src.tool import waitEnter, check_device, waitPid, open_sub, input_notice, download_software, open_close_sub
 
 def main():
-    print("启动中......")
+    logging.info("启动中......")
     # 重新开关usbHub
     open_sub()
     # 测试机器预检
@@ -25,7 +26,7 @@ def main():
     # 实力企业微信机器人
     wcr = WeComRobot("https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=7eb31fcb-8f84-433d-b391-aac56547c880")
     # 是否发送企业微信通知
-    sending = False
+    sending = True
     # 读取任务表
     devTest = eRead_test_task()
     # 启动监控
@@ -37,7 +38,7 @@ def main():
         exit()
     # 检查启动选项
     if len(devTest) <= 0 and not _type:
-        print("您未选择机器测试，也没选择启动功能项！！")
+        logging.error("您未选择机器测试，也没选择启动功能项！！")
         exit()
     # 检查设备机型
     if len(devTest) >= 1:
@@ -95,15 +96,21 @@ def main():
     # 完成后企业微信通知
     if sending and burnType: wcr.message("烧录完成通知", messageList)
 
+    # 等待全部设备重启完成   重新开关usbHub
     if burnType:
         wait_reboot(len(devTest))
         open_sub()
+
+    # 查询在线与不在线的设备
+    # tDevList, fDevList = eRead_dev_type()
 
     # 启动测试
     if "XPT11" in models:
         test_run(T1, sending, wcr)
     elif "XTA11" in models:
         test_run(Ace1, sending, wcr)
+    elif "XPT21" in models:
+        test_run(T1, sending, wcr)
     else:
         logging.warning("请新建机型")
     # 启动监控

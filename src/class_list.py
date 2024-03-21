@@ -83,23 +83,36 @@ class AutoTest(object):
         """
         logging.info("正在停止{}的测试任务，{}".format(self.device, self.beginName))
         if "monkey" in self.beginName:
+            if not check_device(self.device, 200): return False, "停止测试失败，设备不在线"
             read = waitPid(self.device, "monkey", 60)
-            if read != "":
-                os.popen("adb shell kill %s" % str(read).split()[1])
+            monkeyPids = []
+            for i in read.split("\n"):
+                if len(i.split(" ")) > 1:
+                    monkeyPids.append(list(filter(lambda x: x != "", i.split(" ")))[1])
+            for monkeyPid in monkeyPids:
+                os.popen("adb -s {} shell kill {}".format(self.device, str(monkeyPid)))
+
             if waitPid(self.device, "monkey", 1) == "":
                 os.system("adb -s %s shell input keyevent 3" % self.device)
                 return True, "停止测试成功"
+
         for stopNumber in range(3):
             if not check_device(self.device, 200): return False, "停止测试失败，设备不在线"
             if not inspect_screen_state(self.device): os.system('adb -s {} shell input keyevent 26'.format(self.device))
             # 平板压力测试2可测试项目
             stopTest2 = ['重启+相机', 'CAMERA老化', '频繁相机切换', '频繁相机拍照', '频繁相机录像', '频繁开关相机',
                          '相机_MONKEY', 'GPU测试']
+
+            # 平板压力测试2包
+            pressure = os.popen('adb -s %s shell "pm list packages | grep com.emdoor.pressure.tester"' % str(self.device)).read()
+
             testSign = 1
+            # GPU测试停止方法
             if self.beginName == "GPU测试":
                 self.stop(testSign)
                 return True, "停止{}测试成功".format(str(self.beginName))
-            elif self.beginName not in stopTest2:
+            # 平板压力测试1停止测试
+            elif self.beginName not in stopTest2 or pressure == "":
                 read = waitPid(self.device, "com.elink.autotest", 60)
             else:
                 testSign = 2
@@ -113,11 +126,14 @@ class AutoTest(object):
                     if not self.stop(testSign): continue
                     break
                 except Exception as e:
-                    print(e)
+                    logging.error(e)
                     continue
+            else:
+                return False, "停止{}测试失败，获取不到“平板压力测试工具”进程".format(str(self.beginName))
         return True, "停止{}测试成功".format(str(self.beginName))
 
     def start(self):
+        logging.info("启动测试中...")
         if "monkey" in self.beginName:
             self.run_monkey_test()
             return True, str(self.beginName) + "启动成功"
@@ -164,14 +180,14 @@ class AutoTest(object):
                         sleep(1)
                         continue
                 except Exception as e:
-                    print("出错了！测试仍在继续：")
-                    print(e)
+                    logging.warning("出错了！测试仍在继续：")
+                    logging.warning(e)
                     continue
                 try:
                     d(text=self.ssid).click()
                 except Exception as e:
-                    print("出错了！测试仍在继续：")
-                    print(e)
+                    logging.warning("出错了！测试仍在继续：")
+                    logging.warning(e)
                     continue
                 sleep(5)
                 d(text="请输入密码").click()
@@ -344,8 +360,8 @@ class AutoTest(object):
                         d(text="同意").click()
                 break
             except uiautomator2.exceptions.GatewayError as ueg:
-                print(ueg)
-                print("登录账号后设置推荐设置失败，重试")
+                logging.error(ueg)
+                logging.error("登录账号后设置推荐设置失败，重试")
                 continue
 
         if d(text="跳过").exists(timeout=5):
@@ -454,9 +470,6 @@ class AutoTest(object):
         return 400, 1150, 400, 1000
 
     def set_test_gpu(self, d):
-        # 安装测试APP
-        gpuTestBoot = root_path + 'utils\StabilityTest_2.7.apk'
-        os.system("adb -s {} install {}".format(self.device, gpuTestBoot))
         # 将应用设置为全屏
         # 打开设置
         d.shell("am start com.seewo.eclass.settings")
@@ -483,6 +496,9 @@ class AutoTest(object):
         if d(text='确定').exists(): d(text='确定').click()
         # GPU测试应用安装
         if self.beginName == "GPU测试":
+            # 安装测试APP
+            gpuTestBoot = root_path + 'utils\StabilityTest_2.7.apk'
+            os.system("adb -s {} install {}".format(self.device, gpuTestBoot))
             self.set_test_gpu(d)
         # 打开平板压力测试工具2
         d.shell("am start com.emdoor.pressure.tester/.MainActivity")
@@ -538,7 +554,7 @@ class AutoTest(object):
             d(text=self.beginName).click()
         sleep(4)
         if d(text="确定").exists(): d(text="确定").click()
-        sleep(7)
+        sleep(3)
         if self.beginName == "GPU测试":
             sleep(1)
             if d(text="CONTINUE").exists(): d(text="CONTINUE").click()
@@ -580,8 +596,9 @@ class AutoTest(object):
 
 
 class T1(AutoTest):
-    def set_test_gpu(self,d=None):
+    def set_test_gpu(self, d=None):
         pass
+
     pass
 
 

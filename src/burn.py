@@ -2,13 +2,14 @@ import os
 import sys
 import queue
 import threading
-import subprocess
 from time import sleep
+
 
 # 追加模块搜索路径
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_DIR)
 
+from src.tool import cmd_to_file, query_update_folder, getMtkLog_keywords
 from config.config import root_path, logging
 
 
@@ -28,20 +29,32 @@ def mtk_flash(dev, message, _type, softwarePath):
     scatterFile = softwarePath + '\\MT6771_Android_scatter.txt'
     # 执行烧录命令
     # -c firmware-upgrade -b -d {} -s {} --disable_storage_life_cycle_check
-    flashCmd = flashTool + ' -c firmware-upgrade -b -d {} -s {}'.format(daFile,scatterFile)
-    process = subprocess.Popen(flashCmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    logging.info("烧录指令启动..")
-    try:
-        output, unused_err = process.communicate(timeout=300)
-        logging.info("烧写完成%s" % str(output.decode()))
-        message.put("烧写完成")
-        _type.put(True)
-    except Exception as e:
-        process.kill()
+    flashCmd = flashTool + ' -c firmware-upgrade -b -d {} -s {}'.format(daFile, scatterFile)
+
+    # 执行cmd命令并输出txt
+    cmdType, value = cmd_to_file(flashCmd, "flashRead.txt", 300)
+    if not cmdType:
         logging.error("%s 烧写版本超时，进行下一台设备刷机" % dev)
-        logging.error("%s 烧录失败信息：%s" % (dev, e))
         message.put("烧写版本超时")
         _type.put(False)
+        return
+
+    # 获取MTK最新日志
+    newTimeFolder = query_update_folder(r'C:\ProgramData\SP_FT_Logs')
+
+    if newTimeFolder is None:
+        logging.warning("未能获取到MTK烧录器中最新的日志文件")
+    else:
+        # 检查是否烧录成功
+        if not getMtkLog_keywords(newTimeFolder):
+            logging.error("%s 烧写失败，没找到烧录成功关键词，进行下一台设备刷机" % dev)
+            message.put("烧写失败，没找到烧录成功关键词")
+            _type.put(False)
+            return
+
+    logging.info("烧写完成%s" % str(dev))
+    message.put("烧写成功")
+    _type.put(True)
 
 
 def mtk_burn_run(dev, softwarePath):
@@ -56,9 +69,9 @@ def mtk_burn_run(dev, softwarePath):
     if 'SCREEN_STATE_ON' not in res: os.system('adb -s %s shell input keyevent 26' % dev)
 
     sleep(8)
-    logging.info("%s重启,正在进入烧录模式..." % dev)
+    logging.info("%s::正在进入烧录模式【重启】..." % dev)
     os.system('adb -s %s shell reboot -p' % dev)
-    logging.info("%s烧录中...." % dev)
+    logging.info("%s::烧录中...." % dev)
 
     t.join()
 
@@ -67,20 +80,21 @@ def mtk_burn_run(dev, softwarePath):
     return _type.get(), message.get()
 
 
-def burn_run(dev,dowLink):
+def burn_run(dev, dowLink):
     """
     MTK & 展锐烧录方法
     """
     zr = ["XTW31"]
     mtk = ["XPT11", "XTA11"]
-    models = str(os.popen("adb -s {} shell getprop ro.product.model".format(str(dev))).read()).replace(" ", "").replace("\n", "")
+    models = str(os.popen("adb -s {} shell getprop ro.product.model".format(str(dev))).read()).replace(" ", "").replace(
+        "\n", "")
     if models in zr:
-        print("还没添加展锐烧录")
+        logging.error("还没添加展锐烧录")
         exit()
     elif models in mtk:
         #  烧录
         _type, value = mtk_burn_run(dev, dowLink)
         return _type, value
     else:
-        print("刷机机型方法还没添加")
+        logging.error("刷机机型方法还没添加")
         exit()

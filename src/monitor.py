@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import logging
 import os
 import sys
 
@@ -28,7 +29,8 @@ def inspect_public(devs):
     adbRead = os.popen("adb devices").read()
     if str(devs['Device']) not in adbRead:
         return True, True, input_notice(
-            [str(devs['Ids']), str(devs['Sign']), str(devs['Device']),str(devs['BeginName']), "ADB离线，暂无法确认测试状态", 'red'])
+            [str(devs['Ids']), str(devs['Sign']), str(devs['Device']), str(devs['BeginName']),
+             "ADB离线，暂无法确认测试状态", 'red'])
     # 检查测试工具是否存在
     # 跳过工具进程检查项
     skips = ["GPU测试"]
@@ -37,7 +39,8 @@ def inspect_public(devs):
     auto2Pid = os.popen('adb -s {} shell "ps | grep com.emdoor.pressure.tester"'.format(devs['Device'])).read()
     if autoPid == "" and auto2Pid == "":
         return True, True, input_notice(
-            [str(devs['Ids']), str(devs['Sign']), str(devs['Device']),str(devs['BeginName']), "自动化测试APK进程不存在", 'red'])
+            [str(devs['Ids']), str(devs['Sign']), str(devs['Device']), str(devs['BeginName']),
+             "自动化测试APK进程不存在", 'red'])
     return False, False, ""
 
 
@@ -57,12 +60,15 @@ def inspect_activity(devs):
                 acs = str(value).split(",")
                 sleep(3)
                 activity = os.popen(
-                    "adb -s {} shell dumpsys window |findstr mCurrentFocus".format("ACE1Pro202402020022")).read()
+                    "adb -s {} shell dumpsys window |findstr mCurrentFocus".format(str(devs['Device']))).read()
                 for ac in acs:
                     if ac in str(activity).strip():
                         return True, False, input_notice(
-                            [str(devs['Ids']), str(devs['Sign']), str(devs['Device']), str(devs['BeginName']),"%s测试中" % str(devs['BeginName']),'info'])
-                return True, True, input_notice([str(devs['Ids']), str(devs['Sign']), str(devs['Device']),str(devs['BeginName']),"%s测试停止" % str(devs['BeginName']), 'red'])
+                            [str(devs['Ids']), str(devs['Sign']), str(devs['Device']), str(devs['BeginName']),
+                             "%s测试中" % str(devs['BeginName']), 'info'])
+                return True, True, input_notice(
+                    [str(devs['Ids']), str(devs['Sign']), str(devs['Device']), str(devs['BeginName']),
+                     "%s测试停止" % str(devs['BeginName']), 'red'])
 
     return False, False, ""
 
@@ -73,9 +79,11 @@ def inspect_special(devs):
     重启等
     """
     if adb_change(devs['Device'], 300): return False, input_notice(
-        [str(devs['Ids']), str(devs['Sign']), str(devs['Device']),str(devs['BeginName']), "%s测试中" % devs['BeginName'], 'info'])
+        [str(devs['Ids']), str(devs['Sign']), str(devs['Device']), str(devs['BeginName']),
+         "%s测试中" % devs['BeginName'], 'info'])
     return True, input_notice(
-        [str(devs['Ids']), str(devs['Sign']), str(devs['Device']),str(devs['BeginName']), "%s停止" % devs['BeginName'], 'red'])
+        [str(devs['Ids']), str(devs['Sign']), str(devs['Device']), str(devs['BeginName']), "%s停止" % devs['BeginName'],
+         'red'])
 
 
 def inspect_dormant():
@@ -85,7 +93,9 @@ def inspect_dormant():
     a = []
     devList = eRead_test_task_dormant()
     for devs in devList:
-        a.append(input_notice([str(devs['Ids']), str(devs['Sign']), str(devs['Device']),str(devs['BeginName']), "休眠中，未测试", 'warning']))
+        a.append(input_notice(
+            [str(devs['Ids']), str(devs['Sign']), str(devs['Device']), str(devs['BeginName']), "休眠中，未测试",
+             'warning']))
     return a
 
 
@@ -101,15 +111,18 @@ def inspect(devs):
         read = os.popen("adb devices").read()
         if str(devs['Device']) not in read:
             return True, input_notice(
-                [str(devs['Ids']), str(devs['Sign']), str(devs['Device']),str(devs['BeginName']), "monkey测试adb不在线", 'red'])
+                [str(devs['Ids']), str(devs['Sign']), str(devs['Device']), str(devs['BeginName']),
+                 "monkey测试adb不在线", 'red'])
 
         monkeyPid = os.popen('adb -s {} shell "ps | grep monkey"'.format(str(devs))).read()
         # monkey已掉线
         if monkeyPid == "":
             return True, input_notice(
-                [str(devs['Ids']), str(devs['Sign']), str(devs['Device']),str(devs['BeginName']), "monkey进程不存在", 'red'])
+                [str(devs['Ids']), str(devs['Sign']), str(devs['Device']), str(devs['BeginName']), "monkey进程不存在",
+                 'red'])
 
-        return False, input_notice([str(devs['Ids']), str(devs['Sign']), str(devs['Device']),str(devs['BeginName']), "monkey测试中", 'info'])
+        return False, input_notice(
+            [str(devs['Ids']), str(devs['Sign']), str(devs['Device']), str(devs['BeginName']), "monkey测试中", 'info'])
     else:
         # 排除特殊测试项
         if devs['BeginName'] != "开关机测试" and devs['BeginName'] != "重启+相机" and devs[
@@ -134,10 +147,12 @@ def inspect(devs):
                     screenRead = os.popen("adb -s {} shell dumpsys window policy".format(devs['Device'])).read()
                     if screen_state not in screenRead:
                         return False, input_notice(
-                            [str(devs['Ids']), str(devs['Sign']), str(devs['Device']),str(devs['BeginName']), "休眠测试中", 'info'])
+                            [str(devs['Ids']), str(devs['Sign']), str(devs['Device']), str(devs['BeginName']),
+                             "休眠测试中", 'info'])
                     sleep(1)
                 return True, input_notice(
-                    [str(devs['Ids']), str(devs['Sign']), str(devs['Device']),str(devs['BeginName']), "休眠测试停止", 'red'])
+                    [str(devs['Ids']), str(devs['Sign']), str(devs['Device']), str(devs['BeginName']), "休眠测试停止",
+                     'red'])
             elif "蓝牙开关测试" == devs['BeginName']:
                 bluetoothRead = os.popen(
                     "adb -s {} shell settings get global bluetooth_on".format(devs['Device'])).read()
@@ -146,20 +161,24 @@ def inspect(devs):
                         "adb -s {} shell settings get global bluetooth_on".format(devs['Device'])).read()
                     if bluetoothRead not in bluetoothRead2:
                         return False, input_notice(
-                            [str(devs['Ids']), str(devs['Sign']), str(devs['Device']),str(devs['BeginName']), "蓝牙开关测试中", 'info'])
+                            [str(devs['Ids']), str(devs['Sign']), str(devs['Device']), str(devs['BeginName']),
+                             "蓝牙开关测试中", 'info'])
                     sleep(1)
                 return True, input_notice(
-                    [str(devs['Ids']), str(devs['Sign']), str(devs['Device']),str(devs['BeginName']), "蓝牙开关测试停止", 'red'])
+                    [str(devs['Ids']), str(devs['Sign']), str(devs['Device']), str(devs['BeginName']),
+                     "蓝牙开关测试停止", 'red'])
             elif "WIFI开关测试" == devs['BeginName']:
                 wifiRead = os.popen("adb -s {} shell settings get global wifi_on".format(devs['Device'])).read()
                 for screen_state_i in range(40):
                     wifiRead2 = os.popen("adb -s {} shell settings get global wifi_on".format(devs['Device'])).read()
                     if wifiRead not in wifiRead2:
                         return False, input_notice(
-                            [str(devs['Ids']), str(devs['Sign']), str(devs['Device']), "WIFI开关测试中",str(devs['BeginName']), 'info'])
+                            [str(devs['Ids']), str(devs['Sign']), str(devs['Device']), "WIFI开关测试中",
+                             str(devs['BeginName']), 'info'])
                     sleep(1)
                 return True, input_notice(
-                    [str(devs['Ids']), str(devs['Sign']), str(devs['Device']),str(devs['BeginName']), "WIFI开关测试停止", 'red'])
+                    [str(devs['Ids']), str(devs['Sign']), str(devs['Device']), str(devs['BeginName']),
+                     "WIFI开关测试停止", 'red'])
         else:
             # 重启等可能存在adb不在线监控
             _type, value = inspect_special(devs)

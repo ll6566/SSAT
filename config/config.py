@@ -12,9 +12,9 @@ import uiautomator2 as u2
 root_path = str(os.path.dirname(sys.executable)).replace(r"venv\Scripts", "")
 if not os.path.exists(root_path + 'logs'):
     os.mkdir(root_path + 'logs')
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s-%(levelname)s_%(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s-%(levelname)s_%(message)s')
 file_handler = logging.FileHandler(root_path + 'logs\\logs.log')
-file_handler.setLevel(logging.DEBUG)
+file_handler.setLevel(logging.INFO)
 file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 logging.getLogger().addHandler(file_handler)
 logging = logging
