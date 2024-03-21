@@ -10,6 +10,8 @@ sys.path.append(BASE_DIR)
 import uiautomator2 as u2
 # 根目录路径
 root_path = str(os.path.dirname(sys.executable)).replace(r"venv\Scripts", "")
+if not os.path.exists(root_path + 'logs'):
+    os.mkdir(root_path + 'logs')
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s-%(levelname)s_%(message)s')
 file_handler = logging.FileHandler(root_path + 'logs\\logs.log')
 file_handler.setLevel(logging.DEBUG)

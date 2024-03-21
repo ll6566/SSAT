@@ -281,21 +281,26 @@ def renew_file(link):
     if wgetPath not in patList:
         os.environ['Path'] = os.pathsep.join([wgetPath, patList])
     # 定义项目文件的根目录
-    filePath = os.path.dirname(os.path.dirname(root_path))
+    filePath = os.path.dirname(root_path)
     download = 'wget {} -P {} --no-check-certificate'.format(link, filePath)
     # 压缩文件路径
     compressFilePath = filePath + "\\" + str(link).split('/')[-1]
     try:
-        print(compressFilePath)
         if not os.path.exists(compressFilePath):
-            logging.info("软件未下载，开始下载...")
+            logging.info("正在下载工具包...")
             subprocess.run(download, shell=True)
     except:
-        return False, "下载软件失败"
+        logging.error("工具包下载失败")
+        exit()
+
+    if os.path.exists(compressFilePath.split('.zip')[0]):
+        shutil.rmtree(compressFilePath.split('.zip')[0])
 
     try:
-        logging.info("正在解压文件....")
+        logging.info("正在解压工具包....")
         patoolib.extract_archive(compressFilePath, outdir=filePath)
     except Exception as e:
-        print(e)
-        return False, "解压文件失败"
+        logging.error(e)
+        logging.error("工具包解压失败")
+        exit()
+

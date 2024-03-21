@@ -25,8 +25,9 @@ pip install pynput==1.7.6
 pip install requests==2.31.0
 pip list
 
-echo 正在解压工具包...
+echo 正在创建工具包...
+
 set pythonExe=%cd%\venv\Scripts\python.exe
-%pythonExe% %cd%\toolFile\unzip.py %cd%
+%pythonExe% %cd%\src\unzip.py
 
 pause
